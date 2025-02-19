@@ -48,7 +48,7 @@ interface Particle {
 @Component({
   selector: 'app-game',
   template: `
-    <div class="game-container">
+    <div class="game-container" [class.portrait-warning]="isPortrait">
       <div class="parallax-background" #parallaxBg></div>
       <canvas #gameCanvas></canvas>
       <div class="game-info" *ngIf="isGameStarted && !isGameOver">
@@ -64,7 +64,11 @@ interface Particle {
         </div>
       </div>
       <div class="start-message" *ngIf="!isGameStarted">
-        Appuyez sur une touche pour commencer
+        {{
+          isMobile
+            ? "Touchez l'écran pour commencer"
+            : 'Appuyez sur une touche pour commencer'
+        }}
       </div>
       <div class="pause-message" *ngIf="isPaused && !isGameOver">
         Jeu en pause
@@ -75,7 +79,17 @@ interface Particle {
           <div>Score final: {{ score }}</div>
           <div>Temps de survie: {{ formatTime(survivalTime) }}</div>
         </div>
-        <div class="game-over-restart">Appuyez sur ESPACE pour recommencer</div>
+        <div class="game-over-restart">
+          {{
+            isMobile
+              ? "Touchez l'écran pour recommencer"
+              : 'Appuyez sur ESPACE pour recommencer'
+          }}
+        </div>
+      </div>
+      <div class="portrait-message" *ngIf="isPortrait">
+        <div class="rotate-icon">📱</div>
+        Veuillez tourner votre appareil
       </div>
     </div>
   `,
@@ -88,13 +102,81 @@ interface Particle {
         width: 100vw;
         height: 100vh;
         background-image: url('../../assets/images/stars.png');
-        background-size: 120% 120%; /* Agrandi pour permettre le décalage */
+        background-size: 120% 120%;
         background-position: center;
         background-repeat: no-repeat;
         perspective: 1000px;
         overflow: hidden;
         font-family: 'Orbitron', sans-serif;
       }
+
+      .portrait-warning {
+        filter: blur(5px);
+      }
+
+      .portrait-message {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        background: rgba(0, 0, 0, 0.9);
+        padding: 20px;
+        border-radius: 10px;
+        text-align: center;
+        color: white;
+        font-size: 24px;
+        z-index: 1000;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 20px;
+      }
+
+      .rotate-icon {
+        font-size: 48px;
+        animation: rotate 2s infinite;
+      }
+
+      @keyframes rotate {
+        0% {
+          transform: rotate(0deg);
+        }
+        25% {
+          transform: rotate(90deg);
+        }
+        100% {
+          transform: rotate(90deg);
+        }
+      }
+
+      @media (max-width: 768px) {
+        .game-info {
+          top: 10px !important;
+          right: 10px !important;
+        }
+
+        .score {
+          font-size: 24px !important;
+        }
+
+        .survival-time {
+          font-size: 18px !important;
+        }
+
+        .start-message,
+        .game-over-restart {
+          font-size: 20px !important;
+        }
+
+        .game-over-title {
+          font-size: 48px !important;
+        }
+
+        .game-over-score {
+          font-size: 24px !important;
+        }
+      }
+
       .parallax-background {
         position: absolute;
         top: -10%;
@@ -334,6 +416,12 @@ export class GameComponent implements AfterViewInit {
     '#ffffff',
   ];
 
+  public isMobile =
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
+  public isPortrait = false;
+
   constructor() {
     this.spaceshipImage = new Image();
     this.spaceshipImage.src = './assets/images/spaceship.png';
@@ -363,6 +451,19 @@ export class GameComponent implements AfterViewInit {
       x: window.innerWidth / 2,
       y: window.innerHeight / 2,
     };
+
+    // Vérifier l'orientation initiale
+    this.checkOrientation();
+
+    // Écouter les changements d'orientation
+    window.addEventListener('orientationchange', () => {
+      this.checkOrientation();
+    });
+
+    // Alternative pour les appareils qui ne supportent pas orientationchange
+    window.addEventListener('resize', () => {
+      this.checkOrientation();
+    });
   }
 
   ngAfterViewInit(): void {
@@ -409,8 +510,61 @@ export class GameComponent implements AfterViewInit {
     }
   }
 
-  // Méthode pour mettre en pause
-  togglePause(): void {
+  @HostListener('touchstart')
+  onTouchStart(): void {
+    if (this.isMobile) {
+      if (!this.isGameStarted) {
+        if (!this.isPortrait) {
+          this.startGame();
+        }
+        return;
+      }
+      if (this.isGameOver) {
+        this.startGame();
+        return;
+      }
+      // Reprendre le jeu si en pause
+      if (this.isPaused && !this.isGameOver) {
+        this.togglePause();
+      }
+    }
+  }
+
+  @HostListener('touchmove', ['$event'])
+  onTouchMove(event: TouchEvent): void {
+    if (
+      this.isMobile &&
+      this.isGameStarted &&
+      !this.isPaused &&
+      !this.isGameOver &&
+      !this.isPortrait
+    ) {
+      event.preventDefault();
+      const touch = event.touches[0];
+      const rect = this.canvasRef.nativeElement.getBoundingClientRect();
+      this.mousePosition = {
+        x: touch.clientX - rect.left,
+        y: touch.clientY - rect.top,
+      };
+    }
+  }
+
+  @HostListener('touchend')
+  onTouchEnd(): void {
+    if (
+      this.isMobile &&
+      this.isGameStarted &&
+      !this.isGameOver &&
+      !this.isPaused
+    ) {
+      this.togglePause();
+    }
+  }
+
+  private togglePause(): void {
+    if (this.isMobile && this.isPortrait) {
+      return; // Ne pas permettre de reprendre le jeu en mode portrait
+    }
     this.isPaused = !this.isPaused;
     if (!this.isPaused) {
       this.lastTimestamp = performance.now();
@@ -480,7 +634,12 @@ export class GameComponent implements AfterViewInit {
   private updateSpaceshipPosition(): void {
     if (!this.isGameStarted) return;
 
-    // Calcul du vecteur direction vers la souris
+    // Ajuster la sensibilité pour mobile
+    const acceleration = this.isMobile
+      ? this.ACCELERATION * 1.5
+      : this.ACCELERATION;
+
+    // Calcul du vecteur direction vers la souris/touch
     const dx = this.mousePosition.x - this.position.x;
     const dy = this.mousePosition.y - this.position.y;
 
@@ -493,8 +652,8 @@ export class GameComponent implements AfterViewInit {
     }
 
     // Application de l'accélération
-    this.velocity.x += dx * this.ACCELERATION;
-    this.velocity.y += dy * this.ACCELERATION;
+    this.velocity.x += dx * acceleration;
+    this.velocity.y += dy * acceleration;
 
     // Application de la friction
     this.velocity.x *= this.FRICTION;
@@ -504,23 +663,20 @@ export class GameComponent implements AfterViewInit {
     this.position.x += this.velocity.x;
     this.position.y += this.velocity.y;
 
-    // Limites de l'écran
+    // Limites de l'écran avec marge pour mobile
+    const margin = this.isMobile
+      ? this.spaceshipSize.width
+      : this.spaceshipSize.width / 2;
     this.position.x = Math.max(
-      this.spaceshipSize.width / 2,
-      Math.min(
-        window.innerWidth - this.spaceshipSize.width / 2,
-        this.position.x
-      )
+      margin,
+      Math.min(window.innerWidth - margin, this.position.x)
     );
     this.position.y = Math.max(
-      this.spaceshipSize.height / 2,
-      Math.min(
-        window.innerHeight - this.spaceshipSize.height / 2,
-        this.position.y
-      )
+      margin,
+      Math.min(window.innerHeight - margin, this.position.y)
     );
 
-    // Ajout de la mise à jour du parallaxe après la mise à jour de la position
+    // Ajout de la mise à jour du parallaxe
     this.updateParallax();
   }
 
@@ -1345,5 +1501,12 @@ export class GameComponent implements AfterViewInit {
   public getSpeedBonusTimeLeft(): number {
     if (!this.speedBonusActive) return 0;
     return Math.max(0, (this.speedBonusEndTime - performance.now()) / 1000);
+  }
+
+  private checkOrientation(): void {
+    this.isPortrait = window.innerHeight > window.innerWidth;
+    if (this.isGameStarted && !this.isPaused && this.isPortrait) {
+      this.togglePause();
+    }
   }
 }
