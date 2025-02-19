@@ -2,6 +2,8 @@
 
 Un jeu de survie spatial développé avec Angular où vous devez éviter les obstacles et collecter des bonus.
 
+🎮 [Jouer en ligne](https://imojen.github.io/kang/)
+
 ## Fonctionnalités
 
 - Contrôle fluide du vaisseau spatial avec la souris
