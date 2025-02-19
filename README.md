@@ -1,59 +1,65 @@
-# Kang
+# Space Survival Game
 
-This project was generated using [Angular CLI](https://github.com/angular/angular-cli) version 19.1.7.
+Un jeu de survie spatial développé avec Angular où vous devez éviter les obstacles et collecter des bonus.
 
-## Development server
+## Fonctionnalités
 
-To start a local development server, run:
+- Contrôle fluide du vaisseau spatial avec la souris
+- Différents types d'obstacles (astéroïdes, trous noirs, aliens)
+- Système de collectibles avec différents effets :
+  - Bonus de score
+  - Multiplicateur de score
+  - Ralentissement du temps
+  - Bouclier protecteur
+- Effets visuels avancés :
+  - Parallaxe du fond étoilé
+  - Particules et explosions
+  - Effets de bouclier
+- Système de score et de temps de survie
+
+## Installation
+
+1. Clonez le dépôt :
+
+```bash
+git clone [URL_DU_DEPOT]
+```
+
+2. Installez les dépendances :
+
+```bash
+npm install
+```
+
+3. Lancez le serveur de développement :
 
 ```bash
 ng serve
 ```
 
-Once the server is running, open your browser and navigate to `http://localhost:4200/`. The application will automatically reload whenever you modify any of the source files.
+4. Ouvrez votre navigateur sur `http://localhost:4200`
 
-## Code scaffolding
+## Comment jouer
 
-Angular CLI includes powerful code scaffolding tools. To generate a new component, run:
+- Déplacez la souris pour contrôler le vaisseau
+- Évitez les obstacles
+- Collectez les bonus pour augmenter votre score
+- Utilisez le bouclier pour détruire les obstacles
+- Appuyez sur ESPACE pour mettre le jeu en pause
+- Survivez le plus longtemps possible !
 
-```bash
-ng generate component component-name
-```
+## Technologies utilisées
 
-For a complete list of available schematics (such as `components`, `directives`, or `pipes`), run:
+- Angular
+- TypeScript
+- HTML5 Canvas
+- CSS3
 
-```bash
-ng generate --help
-```
+## Crédits
 
-## Building
+Assets graphiques :
 
-To build the project run:
-
-```bash
-ng build
-```
-
-This will compile your project and store the build artifacts in the `dist/` directory. By default, the production build optimizes your application for performance and speed.
-
-## Running unit tests
-
-To execute unit tests with the [Karma](https://karma-runner.github.io) test runner, use the following command:
-
-```bash
-ng test
-```
-
-## Running end-to-end tests
-
-For end-to-end (e2e) testing, run:
-
-```bash
-ng e2e
-```
-
-Angular CLI does not come with an end-to-end testing framework by default. You can choose one that suits your needs.
-
-## Additional Resources
-
-For more information on using the Angular CLI, including detailed command references, visit the [Angular CLI Overview and Command Reference](https://angular.dev/tools/cli) page.
+- Vaisseau spatial
+- Obstacles
+- Collectibles
+- Fond étoilé

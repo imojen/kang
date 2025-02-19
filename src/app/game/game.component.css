@@ -1,0 +1,17 @@
+.game-container {
+  position: relative;
+}
+
+canvas {
+  border: 1px solid black;
+  display: block;
+  margin: auto;
+}
+
+.overlay {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  color: white;
+  font-size: 20px;
+}
