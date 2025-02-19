@@ -87,12 +87,13 @@ interface Particle {
         left: 0;
         width: 100vw;
         height: 100vh;
-        background-image: url('/assets/images/stars.png');
+        background-image: url('../../assets/images/stars.png');
         background-size: 120% 120%; /* Agrandi pour permettre le décalage */
         background-position: center;
         background-repeat: no-repeat;
         perspective: 1000px;
         overflow: hidden;
+        font-family: 'Orbitron', sans-serif;
       }
       .parallax-background {
         position: absolute;
@@ -100,7 +101,7 @@ interface Particle {
         left: -10%;
         width: 120%;
         height: 120%;
-        background-image: url('/assets/images/stars.png');
+        background-image: url('../../assets/images/stars.png');
         background-size: cover;
         background-position: center;
         transform-style: preserve-3d;
@@ -122,18 +123,20 @@ interface Particle {
         top: 20px;
         right: 20px;
         color: white;
-        font-family: 'Arial', sans-serif;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         text-align: right;
       }
       .score {
         font-size: 32px;
-        font-weight: bold;
+        font-weight: 700;
         margin-bottom: 5px;
         color: #ffdd57;
+        letter-spacing: 1px;
       }
       .survival-time {
         font-size: 24px;
+        font-weight: 500;
+        letter-spacing: 1px;
       }
       .start-message {
         position: absolute;
@@ -142,9 +145,10 @@ interface Particle {
         transform: translate(-50%, -50%);
         color: white;
         font-size: 24px;
-        font-family: Arial, sans-serif;
+        font-weight: 500;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         pointer-events: none;
+        letter-spacing: 2px;
       }
       .pause-message {
         position: absolute;
@@ -153,11 +157,11 @@ interface Particle {
         transform: translate(-50%, -50%);
         color: white;
         font-size: 48px;
-        font-family: Arial, sans-serif;
         text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
         pointer-events: none;
         text-transform: uppercase;
-        font-weight: bold;
+        font-weight: 700;
+        letter-spacing: 4px;
       }
       .game-over {
         position: absolute;
@@ -170,13 +174,17 @@ interface Particle {
       }
       .game-over-title {
         font-size: 72px;
-        font-weight: bold;
+        font-weight: 700;
         margin-bottom: 20px;
         color: #ff4136;
+        text-transform: uppercase;
+        letter-spacing: 6px;
       }
       .game-over-score {
         font-size: 36px;
         margin-bottom: 20px;
+        font-weight: 500;
+        letter-spacing: 2px;
         > div {
           margin: 10px 0;
         }
@@ -184,18 +192,23 @@ interface Particle {
       .game-over-restart {
         font-size: 24px;
         opacity: 0.8;
+        font-weight: 400;
+        letter-spacing: 1px;
       }
       .multiplier {
         font-size: 18px;
         color: #ff00ff;
         margin-left: 8px;
         opacity: 0.8;
+        font-weight: 500;
       }
       .speed-bonus {
         font-size: 18px;
         color: #00ffff;
         margin-top: 5px;
         opacity: 0.8;
+        font-weight: 500;
+        letter-spacing: 1px;
       }
     `,
   ],
