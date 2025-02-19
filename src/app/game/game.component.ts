@@ -5,7 +5,7 @@ import {
   AfterViewInit,
   HostListener,
 } from '@angular/core';
-import { NgIf } from '@angular/common';
+import { NgFor, NgIf } from '@angular/common';
 
 interface Obstacle {
   x: number;
@@ -30,7 +30,7 @@ interface Collectible {
   rotation: number;
   collected: boolean;
   value: number;
-  effect?: 'score' | 'speed' | 'shield' | 'size' | 'multiplier';
+  effect?: 'score' | 'speed' | 'shield' | 'size' | 'multiplier' | 'laser';
   auraRotation: number; // Ajout de la rotation de l'aura
   auraScale: number; // Ajout de l'échelle de l'aura
 }
@@ -43,6 +43,20 @@ interface Particle {
   color: string;
   alpha: number;
   rotation: number;
+}
+
+interface Laser {
+  x: number;
+  y: number;
+  angle: number;
+  distance: number;
+  alpha: number;
+}
+
+interface Notification {
+  message: string;
+  createdAt: number;
+  alpha: number;
 }
 
 @Component({
@@ -90,6 +104,15 @@ interface Particle {
       <div class="portrait-message" *ngIf="isPortrait">
         <div class="rotate-icon">📱</div>
         Veuillez tourner votre appareil
+      </div>
+      <div class="notifications-container">
+        <div
+          class="notification"
+          *ngFor="let notification of notifications"
+          [style.opacity]="notification.alpha"
+        >
+          {{ notification.message }}
+        </div>
       </div>
     </div>
   `,
@@ -292,10 +315,39 @@ interface Particle {
         font-weight: 500;
         letter-spacing: 1px;
       }
+      .notifications-container {
+        position: fixed;
+        bottom: 20px;
+        left: 50%;
+        transform: translateX(-50%);
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        gap: 10px;
+        pointer-events: none;
+      }
+
+      .notification {
+        background: rgba(0, 0, 0, 0.7);
+        color: white;
+        padding: 8px 16px;
+        border-radius: 20px;
+        font-size: 18px;
+        font-weight: 500;
+        letter-spacing: 1px;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+      }
+
+      @media (max-width: 768px) {
+        .notification {
+          font-size: 16px;
+          padding: 6px 12px;
+        }
+      }
     `,
   ],
   standalone: true,
-  imports: [NgIf],
+  imports: [NgIf, NgFor],
 })
 export class GameComponent implements AfterViewInit {
   @ViewChild('parallaxBg') parallaxBg!: ElementRef<HTMLDivElement>;
@@ -379,7 +431,7 @@ export class GameComponent implements AfterViewInit {
     { type: 8, value: 1.5, effect: 'multiplier' }, // Multiplicateur de score
     { type: 14, value: 1.2, effect: 'speed' }, // Bonus de vitesse
     { type: 15, value: 10, effect: 'shield' }, // Bouclier temporaire
-    // On peut en ajouter d'autres...
+    { type: 21, value: 1, effect: 'laser' }, // Amélioration du laser
   ] as const;
 
   private readonly AURA_ROTATION_SPEED = 0.02;
@@ -421,6 +473,18 @@ export class GameComponent implements AfterViewInit {
       navigator.userAgent
     );
   public isPortrait = false;
+
+  // Propriétés pour le système de tir
+  private lasers: Laser[] = [];
+  private readonly LASER_SPEED = 20;
+  private readonly LASER_MAX_DISTANCE = 1000;
+  private readonly LASER_COOLDOWN = 1000; // 1 seconde entre chaque tir
+  private readonly INITIAL_LASER_WIDTH = 3;
+  private laserWidth = this.INITIAL_LASER_WIDTH;
+  private lastShotTime = 0;
+
+  public notifications: Notification[] = [];
+  private readonly NOTIFICATION_DURATION = 2000; // 2 secondes
 
   constructor() {
     this.spaceshipImage = new Image();
@@ -488,10 +552,17 @@ export class GameComponent implements AfterViewInit {
     }
   }
 
-  @HostListener('click')
-  onClick(): void {
-    if (!this.isGameStarted && !this.isGameOver) {
-      this.startGame();
+  @HostListener('click', ['$event'])
+  onClick(event: MouseEvent): void {
+    event.preventDefault();
+    if (!this.isMobile) {
+      if (!this.isGameStarted && !this.isGameOver) {
+        this.startGame();
+        return;
+      }
+      if (this.isGameStarted && !this.isPaused && !this.isGameOver) {
+        this.shoot();
+      }
     }
   }
 
@@ -976,6 +1047,7 @@ export class GameComponent implements AfterViewInit {
   private startGame(): void {
     this.score = 0;
     this.scoreMultiplier = 1;
+    this.laserWidth = this.INITIAL_LASER_WIDTH;
     this.isGameStarted = true;
     this.isGameOver = false;
     this.isPaused = false;
@@ -990,6 +1062,7 @@ export class GameComponent implements AfterViewInit {
     this.rotation = 0;
     this.updateGameState();
     this.speedBonusActive = false; // Réinitialisation du bonus de vitesse
+    this.notifications = [];
 
     const parallaxElement = this.parallaxBg.nativeElement;
     parallaxElement.style.transform =
@@ -1327,19 +1400,29 @@ export class GameComponent implements AfterViewInit {
     switch (collectible.effect) {
       case 'score':
         this.addScore(collectible.value);
+        this.showNotification(`Score +${collectible.value}`);
         break;
       case 'multiplier':
         this.scoreMultiplier += 0.5;
+        this.showNotification(
+          `Multiplicateur ×${this.scoreMultiplier.toFixed(1)}`
+        );
         break;
       case 'speed':
         this.speedBonusActive = true;
         this.speedBonusEndTime = performance.now() + this.SPEED_BONUS_DURATION;
+        this.showNotification('Ralentissement activé');
         break;
       case 'shield':
         if (!this.hasShield) {
           this.hasShield = true;
-          this.shieldOpacity = 0; // Commencer avec une opacité nulle pour l'effet de fade in
+          this.shieldOpacity = 0;
+          this.showNotification('Bouclier activé');
         }
+        break;
+      case 'laser':
+        this.laserWidth += collectible.value;
+        this.showNotification('Laser amélioré');
         break;
     }
   }
@@ -1442,6 +1525,89 @@ export class GameComponent implements AfterViewInit {
     });
   }
 
+  private shoot(): void {
+    const currentTime = performance.now();
+    if (currentTime - this.lastShotTime < this.LASER_COOLDOWN) {
+      return; // Encore en cooldown
+    }
+
+    this.lastShotTime = currentTime;
+
+    // Créer un nouveau laser
+    this.lasers.push({
+      x: this.position.x,
+      y: this.position.y,
+      angle: this.rotation - Math.PI / 2, // Ajustement car le vaisseau pointe vers le haut par défaut
+      distance: 0,
+      alpha: 1,
+    });
+
+    // Effet sonore ou visuel du tir
+    this.createLaserParticles();
+  }
+
+  private updateAndDrawLasers(): void {
+    this.lasers = this.lasers.filter((laser) => {
+      // Mettre à jour la position
+      laser.distance += this.LASER_SPEED;
+      const x = laser.x + Math.cos(laser.angle) * laser.distance;
+      const y = laser.y + Math.sin(laser.angle) * laser.distance;
+
+      // Vérifier les collisions avec les obstacles
+      for (let i = this.obstacles.length - 1; i >= 0; i--) {
+        const obstacle = this.obstacles[i];
+        const dx = x - obstacle.x;
+        const dy = y - obstacle.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        if (distance < (obstacle.currentSize || obstacle.size) / 2) {
+          // Collision détectée
+          this.createObstacleDestructionParticles(obstacle);
+          this.obstacles.splice(i, 1);
+          this.addScore(100);
+          return false; // Supprimer le laser
+        }
+      }
+
+      // Dessiner le laser
+      this.ctx.save();
+      this.ctx.beginPath();
+      this.ctx.moveTo(
+        laser.x + Math.cos(laser.angle) * (laser.distance - 20),
+        laser.y + Math.sin(laser.angle) * (laser.distance - 20)
+      );
+      this.ctx.lineTo(x, y);
+      this.ctx.strokeStyle = `rgba(255, 0, 0, ${laser.alpha})`;
+      this.ctx.lineWidth = this.laserWidth;
+      this.ctx.stroke();
+      this.ctx.restore();
+
+      // Continuer tant que le laser n'a pas atteint sa distance maximale
+      return laser.distance < this.LASER_MAX_DISTANCE;
+    });
+  }
+
+  private createLaserParticles(): void {
+    // Créer des particules à la position du vaisseau
+    for (let i = 0; i < 8; i++) {
+      const angle = this.rotation - Math.PI / 2 + (Math.random() - 0.5) * 0.5;
+      const speed = this.PARTICLE_SPEED * (0.5 + Math.random() * 0.5);
+
+      this.particles.push({
+        x: this.position.x,
+        y: this.position.y,
+        speed: {
+          x: Math.cos(angle) * speed,
+          y: Math.sin(angle) * speed,
+        },
+        size: this.PARTICLE_SIZE * 0.5,
+        color: '#ff0000',
+        alpha: 1,
+        rotation: Math.random() * Math.PI * 2,
+      });
+    }
+  }
+
   private gameLoop(timestamp: number): void {
     this.ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
 
@@ -1478,6 +1644,11 @@ export class GameComponent implements AfterViewInit {
           this.isPaused = true;
           this.updateGameState();
         }
+
+        // Mise à jour des lasers
+        this.updateAndDrawLasers();
+
+        this.updateNotifications(timestamp);
       }
 
       // Dessin de tous les éléments
@@ -1508,5 +1679,27 @@ export class GameComponent implements AfterViewInit {
     if (this.isGameStarted && !this.isPaused && this.isPortrait) {
       this.togglePause();
     }
+  }
+
+  private showNotification(message: string): void {
+    this.notifications.push({
+      message,
+      createdAt: performance.now(),
+      alpha: 1,
+    });
+  }
+
+  private updateNotifications(currentTime: number): void {
+    this.notifications = this.notifications.filter((notification) => {
+      const age = currentTime - notification.createdAt;
+      if (age > this.NOTIFICATION_DURATION) return false;
+
+      // Fade out pendant les dernières 500ms
+      if (age > this.NOTIFICATION_DURATION - 500) {
+        notification.alpha = (this.NOTIFICATION_DURATION - age) / 500;
+      }
+
+      return true;
+    });
   }
 }
